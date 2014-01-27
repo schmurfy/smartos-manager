@@ -6,7 +6,7 @@ require 'colored'
 class AppCLI < Thor
   desc "list", "List all vms"
   def list
-    registry = HostRegistry.new('hosts.toml')
+    registry = HostRegistry.new('smartos_hosts.toml')
     ret = registry.list_vms()
     
     sysinfos = registry.sysinfo()
