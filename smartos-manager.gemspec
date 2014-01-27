@@ -4,12 +4,12 @@ require File.expand_path('../lib/smartos-manager/version', __FILE__)
 Gem::Specification.new do |gem|
   gem.authors       = ["Julien Ammous"]
   gem.email         = ["schmurfy@gmail.com"]
-  gem.description   = %q{TODO: Write a gem description}
-  gem.summary       = %q{TODO: Write a gem summary}
+  gem.description   = %q{...}
+  gem.summary       = %q{... .}
   gem.homepage      = ""
 
   gem.files         = `git ls-files`.split($\)
-  gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
+  gem.executables   = %(smanager)
   gem.name          = "smartos-manager"
   gem.license       = 'MIT'
   gem.require_paths = ["lib"]
@@ -18,5 +18,8 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'thor'
   gem.add_dependency 'net-ssh'
   gem.add_dependency 'net-ssh-gateway'
+  gem.add_dependency 'net-ssh-multi'
+  gem.add_dependency 'colored'
+  gem.add_dependency 'size_units'
 
 end
