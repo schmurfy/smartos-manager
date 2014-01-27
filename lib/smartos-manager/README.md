@@ -3,6 +3,12 @@
 a command line tool to manage SmartOS hosts.
 
 
+# Prerequisites
+
+- you have an ssh key
+- your ssh public key is in authorized_keys on the server to allow passwordless login
+
+
 # Usage
 
 first you need to create a config file to define your environment:
