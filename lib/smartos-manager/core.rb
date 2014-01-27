@@ -2,7 +2,7 @@
 require 'net/ssh'
 require 'net/ssh/multi'
 require 'net/ssh/gateway'
-require 'psych'
+require 'toml'
 require 'size_units'
 
 
@@ -11,13 +11,13 @@ class SSHHost
   attr_reader :address, :user
   attr_reader :gateway
   
-  def self.from_yaml(name, h)
+  def self.from_hash(name, h, global_h)
     new(
         name:         name,
         address:      h['address'],
-        gateway:      h['gateway'],
-        user:         h['user'],
-        gateway_user: h['gateway_user']
+        gateway:      h['gateway'] || global_h['gateway'],
+        user:         h['user'] || global_h['user'],
+        gateway_user: h['gateway_user'] || global_h['gateway_user']
       )
   end
   
@@ -86,9 +86,14 @@ class HostRegistry
     
     @connection = Net::SSH::Multi.start()
     
-    data = Psych.load_file(path)
+    # data = Psych.load_file(path)
+    # data = TOML::Parser.new( File.read(path) ).parsed
+    data = TOML.load_file(path)
+    
+    global_data = data.delete('global')
+    
     data.each do |name, opts|
-      host = SSHHost.from_yaml(name, opts)
+      host = SSHHost.from_hash(name, opts, global_data)
       
       @hosts[host.address] = host
       

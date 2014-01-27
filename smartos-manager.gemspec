@@ -15,6 +15,7 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.version       = SmartosManager::VERSION
   
+  gem.add_dependency 'toml-rb'
   gem.add_dependency 'thor'
   gem.add_dependency 'net-ssh'
   gem.add_dependency 'net-ssh-gateway'

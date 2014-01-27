@@ -6,7 +6,7 @@ require 'colored'
 class AppCLI < Thor
   desc "list", "List all vms"
   def list
-    registry = HostRegistry.new('hosts.yml')
+    registry = HostRegistry.new('hosts.toml')
     ret = registry.list_vms()
     
     sysinfos = registry.sysinfo()
@@ -19,7 +19,6 @@ class AppCLI < Thor
       
       vms.each{|vm| vm_memory += vm.memory }
       avail = (mem - vm_memory) - (20 * mem/100.0)
-      p [:avail, avail]
       
       puts "\n#{host.name} (#{host.address})  (#{vms.size} vms)  (Total RAM: #{mem.human_size(1).green}, Avail: #{avail.human_size(1).magenta})"
       vms.each do |vm|
