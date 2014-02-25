@@ -61,24 +61,27 @@ end
 
 
 class VirtualMachine
-  attr_reader :uid, :type, :memory, :state, :name, :admin_ip
-  
-  def initialize(uid, type, memory, state, name, admin_ip)
-    @uid = uid
-    @type = type
-    @memory = memory.to_i.megabytes
-    @state = state
-    @name = name
-    @admin_ip = admin_ip
+  attr_reader :uuid, :type, :memory, :state, :name, :admin_ip
+    
+  def initialize(data = {})
+    @uuid = data.delete('uuid')
+    @type = data.delete('type')
+    @memory = data.delete('ram').to_i.megabytes
+    @state = data.delete('state')
+    @name = data.delete('alias')
+    @admin_ip = data.delete('nics.0.ip')
+    
+    @user_data = data
   end
   
-  # 4c1ae27f-a986-4189-a2b7-5c5e6d2e26ef:OS:300:running:backup
-  def self.from_line(line)
-    new(*line.split(':'))
+  def [](key)
+    @user_data[key]
   end
 end
 
 class HostRegistry
+  attr_reader :user_columns
+  
   def initialize(path)
     @registry = {}
     @gateways = {}
@@ -91,6 +94,7 @@ class HostRegistry
     data = TOML.load_file(path)
     
     global_data = data.delete('global')
+    user_columns = data.delete('user_columns') || {}
     
     data.each do |name, opts|
       host = SSHHost.from_hash(name, opts, global_data)
@@ -103,6 +107,9 @@ class HostRegistry
           user: host.user,
           compression: false
         )
+      
+      # user defined columns
+      @user_columns = user_columns
     end
     
   end
@@ -124,12 +131,28 @@ class HostRegistry
     ret
   end
   
+  LIST_COLUMNS = %w(
+    uuid
+    type
+    ram
+    state
+    alias
+    nics.0.ip
+  )
+  
   def list_vms
-    vms = run_on_all("vmadm list -o uuid,type,ram,state,alias,nics.0.ip -p")
+    columns = LIST_COLUMNS + @user_columns.values
+    
+    vms = run_on_all("vmadm list -o #{columns.join(',')} -p")
     vms.each do |host, data|
       if data
         vms[host] = data.split("\n").map! do |line|
-          VirtualMachine.from_line(line)
+          data = {}
+          line.split(':', 20).each.with_index do |val, n|
+            data[columns[n]] = val
+          end
+          
+          VirtualMachine.new(data)
         end
       else
         vms[host] = []

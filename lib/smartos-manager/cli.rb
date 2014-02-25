@@ -11,7 +11,9 @@ class AppCLI < Thor
     
     sysinfos = registry.sysinfo()
     
-    p_vm_list("Memory", "Name", "Type", "UUID", "State", "Admin IP")
+    user_columns = registry.user_columns.keys.map{|s| humanize(s) }
+    
+    p_vm_list("Memory", "Name", "Type", "UUID", "State", "Admin IP", *user_columns)
     
     ret.each do |host, vms|
       mem = sysinfos[host][:memory]
@@ -22,7 +24,8 @@ class AppCLI < Thor
       
       puts "\n#{host.name} (#{host.address})  (#{vms.size} vms)  (Total RAM: #{mem.human_size(1).green}, Avail: #{avail.human_size(1).magenta})"
       vms.each do |vm|
-        p_vm_list(vm.memory.human_size(1), vm.name, vm.type, vm.uid, printable_state(vm.state), vm.admin_ip)
+        user_columns = registry.user_columns.values.map{|key| vm[key] }
+        p_vm_list(vm.memory.human_size(1), vm.name, vm.type, vm.uuid, printable_state(vm.state), vm.admin_ip, *user_columns)
       end
       
       if vms.empty?
@@ -38,8 +41,14 @@ class AppCLI < Thor
   
   no_tasks do
     
-    def p_vm_list(size, name, type, uuid, state, admin_ip)
-      puts "  [ #{size.rjust(6)} #{name.rjust(15)} - #{uuid.ljust(37)}][ #{admin_ip.ljust(15).cyan} ][ #{state} ]"
+    def humanize(str)
+      str.split("_").map(&:capitalize).join(' ')
+    end
+    
+    
+    def p_vm_list(size, name, type, uuid, state, admin_ip, *user_columns)
+      tmp = user_columns.map{|val| "[ #{val.to_s.ljust(15).cyan} ]" }.join('')
+      puts "  [ #{size.rjust(6)} #{name.rjust(15)} - #{uuid.ljust(37)}][ #{admin_ip.ljust(15).cyan} ]#{tmp}[ #{state} ]"
     end
     
     def printable_state(state)
