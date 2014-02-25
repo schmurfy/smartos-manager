@@ -41,22 +41,6 @@ class SSHHost
     @gateway_user || user
   end
   
-# private
-#   def connection
-#     unless @connection
-#       if @gateway
-#         @gateway_obj = Net::SSH::Gateway.new(@gateway, @user)
-#         @connection = @gateway_obj.ssh(@address, @gateway_user || @user, SSH_OPTIONS)
-        
-#       else
-#         @connection = Net::SSH.start(@address, @user,  SSH_OPTIONS)
-        
-#       end
-
-#     end
-    
-#     @connection
-#   end
 end
 
 
@@ -89,8 +73,6 @@ class HostRegistry
     
     @connection = Net::SSH::Multi.start()
     
-    # data = Psych.load_file(path)
-    # data = TOML::Parser.new( File.read(path) ).parsed
     data = TOML.load_file(path)
     
     global_data = data.delete('global')
