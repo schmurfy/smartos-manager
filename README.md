@@ -14,6 +14,10 @@ a command line tool to manage SmartOS hosts.
 first you need to create a config file to define your environment:
 
 ```toml
+# show custom properties in the list
+[user_columns]
+  some_property = "customer_metadata.some_property"
+
 [global]
   # gateway_user = "root"
   gateway = "x.x.x.x"
