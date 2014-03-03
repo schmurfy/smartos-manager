@@ -3,11 +3,27 @@ require File.expand_path('../core', __FILE__)
 require 'thor'
 require 'colored'
 
+
+class ColorPicker
+  
+  def initialize
+    @colors = {}
+    @available_colors = %w(green yellow red cyan magenta blue)
+  end
+  
+  def get(str)
+    @colors[str] ||= @available_colors.shift()
+  end
+  
+end
+
 class AppCLI < Thor
   desc "list", "List all vms"
   def list
     registry = HostRegistry.new('smartos_hosts.toml')
     ret = registry.list_vms()
+    
+    rev_colors = ColorPicker.new
     
     sysinfos = registry.sysinfo()
     
@@ -23,7 +39,7 @@ class AppCLI < Thor
       avail = (mem - vm_memory) - (20 * mem/100.0)
       
       rev = sysinfos[host][:smartos_version]
-      puts "\n#{host.name} [SmartOS: #{rev.green}] (#{host.address})  (#{vms.size} vms)  (Total RAM: #{mem.human_size(1).green}, Avail: #{avail.human_size(1).magenta})"
+      puts "\n#{host.name} [SmartOS: #{rev.send(rev_colors.get(rev))}] (#{host.address})  (#{vms.size} vms)  (Total RAM: #{mem.human_size(1).green}, Avail: #{avail.human_size(1).magenta})"
       vms.each do |vm|
         user_columns = registry.user_columns.values.map{|key| vm[key] }
         p_vm_list(vm.memory.human_size(1), vm.name, vm.type, vm.uuid, printable_state(vm.state), vm.admin_ip, *user_columns)
