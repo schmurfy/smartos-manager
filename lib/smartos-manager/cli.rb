@@ -22,7 +22,8 @@ class AppCLI < Thor
       vms.each{|vm| vm_memory += vm.memory }
       avail = (mem - vm_memory) - (20 * mem/100.0)
       
-      puts "\n#{host.name} (#{host.address})  (#{vms.size} vms)  (Total RAM: #{mem.human_size(1).green}, Avail: #{avail.human_size(1).magenta})"
+      rev = sysinfos[host][:smartos_version]
+      puts "\n#{host.name} [SmartOS: #{rev.green}] (#{host.address})  (#{vms.size} vms)  (Total RAM: #{mem.human_size(1).green}, Avail: #{avail.human_size(1).magenta})"
       vms.each do |vm|
         user_columns = registry.user_columns.values.map{|key| vm[key] }
         p_vm_list(vm.memory.human_size(1), vm.name, vm.type, vm.uuid, printable_state(vm.state), vm.admin_ip, *user_columns)

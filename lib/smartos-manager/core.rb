@@ -148,10 +148,15 @@ class HostRegistry
     ret = {}
     
     # Memory size: 8157 Megabytes
-    hosts = run_on_all("prtconf | head -3 | grep Mem")
-    hosts.each do |host, data|
+    run_on_all("prtconf | head -3 | grep Mem").each do |host, data|
       _, _, mem, _ = data.split(" ")
       ret[host] = {memory: mem.to_i.megabytes}
+    end
+    
+    # joyent_20140207T053435Z
+    run_on_all("uname -a | cut -d ' ' -f 4").each do |host, data|
+      _, rev = data.strip().split('_')
+      ret[host][:smartos_version] = rev
     end
     
     ret
