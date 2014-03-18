@@ -65,7 +65,7 @@ class AppCLI < Thor
     
     def p_vm_list(size, name, type, uuid, state, admin_ip, *user_columns)
       tmp = user_columns.map{|val| "[ #{val.to_s.ljust(15).cyan} ]" }.join('')
-      puts "  [ #{size.rjust(6)} #{name.rjust(15)} - #{uuid.ljust(37)}][ #{admin_ip.ljust(15).cyan} ]#{tmp}[ #{state} ]"
+      puts "  [ #{size.rjust(6)} #{name.rjust(20)} - #{uuid.ljust(37)}][ #{admin_ip.ljust(15).cyan} ]#{tmp}[ #{state} ]"
     end
     
     def printable_state(state)
