@@ -33,13 +33,16 @@ class AppCLI < Thor
     
     ret.each do |host, vms|
       mem = sysinfos[host][:memory]
+      zfs_arc_reserved = sysinfos[host][:zfs_arc_reserved]
+      zfs_arc_current = sysinfos[host][:zfs_arc_current]
       vm_memory = 0
       
       vms.each{|vm| vm_memory += vm.memory }
-      avail = (mem - vm_memory) - (20 * mem/100.0)
+      # avail = (mem - vm_memory) - (20 * mem/100.0)
+      avail = (mem - vm_memory) - zfs_arc_reserved
       
       rev = sysinfos[host][:smartos_version]
-      puts "\n#{host.name} [SmartOS: #{rev.send(rev_colors.get(rev))}] (#{host.address})  (#{vms.size} vms)  (Total RAM: #{mem.human_size(1).green}, Avail: #{avail.human_size(1).magenta})"
+      puts "\n#{host.name} [SmartOS: #{rev.send(rev_colors.get(rev))}] (#{host.address})  (#{vms.size} vms)  (Total RAM: #{mem.human_size(1).green}, ZFS: #{format_size(zfs_arc_current)}G/#{format_size(zfs_arc_reserved)}G, Avail: #{avail.human_size(1).magenta})"
       vms.each do |vm|
         user_columns = registry.user_columns.values.map{|key| vm[key] }
         p_vm_list(vm.memory.human_size(1), vm.name, vm.type, vm.uuid, printable_state(vm.state), vm.admin_ip, *user_columns)
@@ -57,6 +60,10 @@ class AppCLI < Thor
   
   
   no_tasks do
+    
+    def format_size(val, unit = 3)
+      format('%.1f', val / (1024.0**unit))
+    end
     
     def humanize(str)
       str.split("_").map(&:capitalize).join(' ')

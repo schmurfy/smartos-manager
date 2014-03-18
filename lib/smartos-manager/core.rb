@@ -153,6 +153,28 @@ class HostRegistry
       ret[host] = {memory: mem.to_i.megabytes}
     end
     
+    # ARC Max Size
+    # zfs:0:arcstats:c:2850704524
+    # zfs:0:arcstats:size:1261112216
+    run_on_all("kstat -C zfs:0:arcstats:c zfs:0:arcstats:size").each do |host, data|
+      zfs_arc_current = nil
+      zfs_arc_reserved = nil
+      
+      data.split("\n").each do |line|
+        value = line.split(':').last.to_i
+        if line.start_with?('zfs:0:arcstats:size:')
+          zfs_arc_current = value
+        else
+          zfs_arc_reserved = value
+        end
+      end
+      
+      ret[host].merge!(
+          zfs_arc_current: zfs_arc_current,
+          zfs_arc_reserved: zfs_arc_reserved
+        )
+    end
+    
     # joyent_20140207T053435Z
     run_on_all("uname -a | cut -d ' ' -f 4").each do |host, data|
       _, rev = data.strip().split('_')
