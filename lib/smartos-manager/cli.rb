@@ -69,10 +69,13 @@ class AppCLI < Thor
       str.split("_").map(&:capitalize).join(' ')
     end
     
+    def format_generic(str)
+      str
+    end
     
     def p_vm_list(size, name, type, uuid, state, admin_ip, *user_columns)
-      tmp = user_columns.map{|val| "[ #{val.to_s.ljust(15).cyan} ]" }.join('')
-      puts "  [ #{size.rjust(6)} #{name.rjust(20)} - #{uuid.ljust(37)}][ #{admin_ip.ljust(15).cyan} ]#{tmp}[ #{state} ]"
+      tmp = user_columns.map{|val| "[ #{format_generic(val).to_s.ljust(15).cyan} ]" }.join('')
+      puts "  [ #{size.rjust(6)}  #{name.ljust(20)} - #{uuid.ljust(37)}][ #{format_generic(admin_ip).ljust(15).cyan} ]#{tmp}[ #{state} ]"
     end
     
     def printable_state(state)
