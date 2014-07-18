@@ -143,6 +143,25 @@ class HostRegistry
     
   end
   
+  def diag
+    ret = {}
+    
+    run_on_all("prtdiag").each do |host, data|
+      free_memory_banks = 0
+      
+      system_id = data.match(/^System Configuration: (.+)$/)[1]
+      data.scan(/(empty).*DIMM\s+([0-9])/).each do |reg|
+        free_memory_banks+= 1
+      end
+            
+      ret[host] = {
+        system_id: system_id,
+        free_memory_banks: free_memory_banks
+      }
+    end
+    
+    ret
+  end
   
   def sysinfo
     ret = {}

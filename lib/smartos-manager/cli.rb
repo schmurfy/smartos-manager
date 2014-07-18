@@ -26,6 +26,7 @@ class AppCLI < Thor
     rev_colors = ColorPicker.new
     
     sysinfos = registry.sysinfo()
+    diags = registry.diag()
     
     user_columns = registry.user_columns.keys.map{|s| humanize(s) }
     
@@ -42,7 +43,8 @@ class AppCLI < Thor
       avail = [1, (mem - vm_memory) - zfs_arc_reserved].max
       
       rev = sysinfos[host][:smartos_version]
-      puts "\n#{host.name} [SmartOS: #{rev.send(rev_colors.get(rev))}] (#{host.address})  (#{vms.size} vms)  (Total RAM: #{mem.human_size(1).green}, ZFS: #{format_size(zfs_arc_current)}G/#{format_size(zfs_arc_reserved)}G, Avail: #{avail.human_size(1).magenta})"
+      puts "\nHardware: #{diags[host][:system_id]}"
+      puts "#{host.name} [SmartOS: #{rev.send(rev_colors.get(rev))}] (#{host.address}) (Total RAM: #{mem.human_size(1).green} [Free Slots: #{diags[host][:free_memory_banks]}], ZFS: #{format_size(zfs_arc_current)}G/#{format_size(zfs_arc_reserved)}G, Avail: #{avail.human_size(1).magenta})"
       vms.each do |vm|
         user_columns = registry.user_columns.values.map{|key| vm[key] }
         p_vm_list(vm.memory.human_size(1), vm.name, vm.type, vm.uuid, printable_state(vm.state), vm.admin_ip, *user_columns)
