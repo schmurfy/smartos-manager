@@ -87,6 +87,7 @@ class HostRegistry
           via: gateway_for(host.gateway, host.gateway_user),
           # via: @gateways[host.gateway],
           user: host.user,
+          timeout: 20,
           compression: false
         )
       
