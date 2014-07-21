@@ -40,7 +40,7 @@ class AppCLI < Thor
       
       vms.each{|vm| vm_memory += vm.memory }
       # avail = (mem - vm_memory) - (20 * mem/100.0)
-      avail = [1, (mem - vm_memory) - zfs_arc_reserved].max
+      avail = [1, (mem - vm_memory) - zfs_arc_current].max
       
       rev = sysinfos[host][:smartos_version]
       puts "\nHardware: #{diags[host][:system_id]}"
