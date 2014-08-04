@@ -30,7 +30,7 @@ class AppCLI < Thor
     
     user_columns = registry.user_columns.keys.map{|s| humanize(s) }
     
-    p_vm_list("Memory", "Name", "Type", "UUID", "State", "Admin IP", *user_columns)
+    p_vm_list("Memory", "Name (gray = online)", "Type", "UUID", "State", "Admin IP", "DD(GB)", *user_columns)
     
     ret.each do |host, vms|
       mem = sysinfos[host][:memory]
@@ -47,7 +47,16 @@ class AppCLI < Thor
       puts "#{host.name} [SmartOS: #{rev.send(rev_colors.get(rev))}] (#{host.address}) (Total RAM: #{mem.human_size(1).green} [Free Slots: #{diags[host][:free_memory_banks]}], ZFS: #{format_size(zfs_arc_current)}G/#{format_size(zfs_arc_reserved)}G, Avail: #{avail.human_size(1).magenta})"
       vms.each do |vm|
         user_columns = registry.user_columns.values.map{|key| vm[key] }
-        p_vm_list(vm.memory.human_size(1), vm.name, vm.type, vm.uuid, printable_state(vm.state), vm.admin_ip, *user_columns)
+        
+        if vm.type == "KVM"
+          vm_disk = sysinfos[host][:zfs_volumes]["zones/#{vm.uuid}-disk0"]
+          vm_disk_label = "#{vm_disk[:size]}"
+        else
+          vm_disk = sysinfos[host][:zfs_volumes]["zones/#{vm.uuid}"]
+          vm_disk_label = "#{vm_disk[:quota]}"
+        end
+        
+        p_vm_list(vm.memory.human_size(1), vm.name, vm.type, vm.uuid, vm.state, vm.admin_ip, vm_disk_label, *user_columns)
       end
       
       if vms.empty?
@@ -75,9 +84,22 @@ class AppCLI < Thor
       str
     end
     
-    def p_vm_list(size, name, type, uuid, state, admin_ip, *user_columns)
+    def p_vm_list(size, name, type, uuid, state, admin_ip, disk_label, *user_columns)
       tmp = user_columns.map{|val| "[ #{format_generic(val).to_s.ljust(15).cyan} ]" }.join('')
-      puts "  [ #{size.rjust(6)}  #{name.ljust(30)} - #{uuid.ljust(37)}][ #{format_generic(admin_ip).ljust(15).cyan} ]#{tmp}[ #{state} ]"
+      
+      if name.start_with?('Name')
+        name = name.white()
+      else
+        state_color =  case state
+          when 'running' then :white
+          else
+            :red
+        end
+        
+        name = name.send(state_color)
+      end
+      
+      puts "  [ #{size.rjust(6)}  #{name.ljust(35)} - #{disk_label.rjust(5)} - #{uuid.ljust(37)}][ #{format_generic(admin_ip).ljust(15).cyan} ]#{tmp}"
     end
     
     def printable_state(state)

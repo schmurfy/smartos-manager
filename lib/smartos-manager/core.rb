@@ -171,6 +171,16 @@ class HostRegistry
     run_on_all("prtconf | head -3 | grep Mem").each do |host, data|
       _, _, mem, _ = data.split(" ")
       ret[host] = {memory: mem.to_i.megabytes}
+      ret[host][:zfs_volumes] = {}
+    end
+    
+    # disk size
+    run_on_all("zfs list -Ho name,quota,volsize").each do |host, data|
+      
+      data.split("\n").each do |line|
+        name, quota, size = line.split("\t")
+        ret[host][:zfs_volumes][name] = {size: size[0...-1].split(',').first, quota: quota[0...-1].split(',').first}
+      end
     end
     
     # ARC Max Size
