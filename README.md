@@ -36,7 +36,7 @@ first you need to create a config file to define your environment:
 
 ```
 
-All options except address (which makes no sense) can be defined in a global section, if present a host section this one will be used, otherwise the global one will be used.
+All options except address (which makes no sense) can be defined in a global section, if present in a host section the later will be used, otherwise the global one is used.
 
 Save te config file as "smartos_hosts.toml" and run the followings commands
 in the same folder.
