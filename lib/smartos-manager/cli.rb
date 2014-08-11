@@ -8,7 +8,7 @@ class ColorPicker
   
   def initialize
     @colors = {}
-    @available_colors = %w(green yellow cyan magenta blue red)
+    @available_colors = %w(green yellow cyan magenta blue red gray white)
   end
   
   def get(str)
