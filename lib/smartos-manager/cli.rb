@@ -18,6 +18,24 @@ class ColorPicker
 end
 
 class AppCLI < Thor
+  
+  desc "list_images", "List images available"
+  def list_images
+    registry = HostRegistry.new('smartos_hosts.toml')
+    ret = registry.list_images()
+    
+    rev_colors = ColorPicker.new
+    p_img_list("UUID", "Name", "Version", "OS")
+    
+    ret.each do |host, images|
+      puts "\n#{host.name} - #{host.address}"
+      images.each do |img|
+        # color = rev_colors.get(img.uuid)
+        p_img_list( img.uuid, img.name, img.version, img.os)
+      end
+    end
+  end
+  
   desc "list", "List all vms"
   def list
     registry = HostRegistry.new('smartos_hosts.toml')
@@ -82,6 +100,11 @@ class AppCLI < Thor
     
     def format_generic(str)
       str
+    end
+    
+    # (uuid name version os)
+    def p_img_list(uuid, name, version, os)
+      puts "  [ #{uuid.ljust(37)}]  #{name.ljust(30)} #{version.ljust(6)} #{os}"
     end
     
     def p_vm_list(size, name, type, uuid, state, admin_ip, disk_label, *user_columns)

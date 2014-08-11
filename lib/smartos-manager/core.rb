@@ -4,6 +4,7 @@ require 'net/ssh/multi'
 require 'net/ssh/gateway'
 require 'toml'
 require 'size_units'
+require 'json'
 
 
 class SSHHost
@@ -60,6 +61,18 @@ class VirtualMachine
   
   def [](key)
     @user_data[key]
+  end
+end
+
+
+class Image
+  attr_reader :uuid, :name, :version, :os
+  
+  def initialize(data = {})
+    @uuid = data.delete('uuid')
+    @name = data.delete('name')
+    @version = data.delete('version')
+    @os = data.delete('os')
   end
 end
 
@@ -143,6 +156,26 @@ class HostRegistry
     end
     
   end
+  
+  
+  def list_images
+    ret = {}
+    
+    columns = %w(uuid name version os)
+    
+    images = run_on_all("imgadm list -j")
+    images.each do |host, data|
+      
+      json = JSON.parse(data)
+      
+      ret[host] = json.map do |img_data|
+        Image.new( img_data['manifest'] )
+      end
+    end
+    
+    ret
+  end
+  
   
   def diag
     ret = {}
