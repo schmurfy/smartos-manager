@@ -61,7 +61,7 @@ class AppCLI < Thor
       avail = [1, (mem - vm_memory) - zfs_arc_current].max
       
       rev = sysinfos[host][:smartos_version]
-      puts "\nHardware: #{diags[host][:system_id]}"
+      puts "\nHardware: #{diags[host][:system_id]} (MAC: #{sysinfos[host][:mac0].upcase.white()} )"
       puts "#{host.name} [SmartOS: #{rev.send(rev_colors.get(rev))}] (#{host.address}) (Total RAM: #{mem.human_size(1).green} [Free Slots: #{diags[host][:free_memory_banks]}], ZFS: #{format_size(zfs_arc_current)}G/#{format_size(zfs_arc_reserved)}G, Avail: #{avail.human_size(1).magenta})"
       vms.each do |vm|
         user_columns = registry.user_columns.values.map{|key| vm[key] }

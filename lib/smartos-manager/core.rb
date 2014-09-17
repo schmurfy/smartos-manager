@@ -207,6 +207,12 @@ class HostRegistry
       ret[host][:zfs_volumes] = {}
     end
     
+    # main MAC address
+    run_on_all("ifconfig e1000g0 | grep ether | cut -d ' ' -f 2").each do |host, data|
+      ret[host][:mac0] = data.strip()
+    end
+
+    
     # disk size
     run_on_all("zfs list -Ho name,quota,volsize").each do |host, data|
       
