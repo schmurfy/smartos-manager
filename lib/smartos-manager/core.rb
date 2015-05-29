@@ -204,7 +204,6 @@ class HostRegistry
     run_on_all("prtconf | head -3 | grep Mem").each do |host, data|
       _, _, mem, _ = data.split(" ")
       ret[host] = {memory: mem.to_i.megabytes}
-      ret[host][:zfs_volumes] = {}
     end
     
     # main MAC address
@@ -224,6 +223,7 @@ class HostRegistry
     
     # disk size
     run_on_all("zfs list -Ho name,quota,volsize").each do |host, data|
+      ret[host][:zfs_volumes] = {}
       
       data.split("\n").each do |line|
         name, quota, size = line.split("\t")
