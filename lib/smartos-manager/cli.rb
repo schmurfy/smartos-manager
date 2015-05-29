@@ -60,9 +60,12 @@ class AppCLI < Thor
       # avail = (mem - vm_memory) - (20 * mem/100.0)
       avail = [1, (mem - vm_memory) - zfs_arc_current].max
       
+      dd = sysinfos[host][:disks].map{|_, d| "#{format_size(d[:size])} GB" }.join(" - ")
+      
       rev = sysinfos[host][:smartos_version]
-      puts "\nHardware: #{diags[host][:system_id]} (MAC: #{sysinfos[host][:mac0].upcase.white()} )"
-      puts "#{host.name} [SmartOS: #{rev.send(rev_colors.get(rev))}] (#{host.address}) (Total RAM: #{mem.human_size(1).green} [Free Slots: #{diags[host][:free_memory_banks]}], ZFS: #{format_size(zfs_arc_current)}G/#{format_size(zfs_arc_reserved)}G, Avail: #{avail.human_size(1).magenta})"
+      puts "\nHardware: #{diags[host][:system_id]} (MAC: #{sysinfos[host][:mac0].upcase.white()}, IP: #{host.address.white()} )"
+      puts "HDD: #{sysinfos[host][:disks].keys.size} drives - #{dd}"
+      puts "#{host.name} [SmartOS: #{rev.send(rev_colors.get(rev))}] (Free RAM: #{avail.human_size(1).green}/#{mem.human_size(1)} [Free Slots: #{diags[host][:free_memory_banks]}], ZFS: #{format_size(zfs_arc_current)}G/#{format_size(zfs_arc_reserved)}G)"
       vms.each do |vm|
         user_columns = registry.user_columns.values.map{|key| vm[key] }
         
@@ -104,6 +107,9 @@ class AppCLI < Thor
     
     # (uuid name version os)
     def p_img_list(uuid, name, version, os)
+      name ||= '-'
+      version ||= '-'
+      os ||= '-'
       puts "  [ #{uuid.ljust(37)}]  #{name.ljust(30)} #{version.ljust(6)} #{os}"
     end
     
@@ -122,7 +128,21 @@ class AppCLI < Thor
         name = name.send(state_color)
       end
       
-      puts "  [ #{size.rjust(6)}  #{name.ljust(35)} - #{disk_label.rjust(5)} - #{uuid.ljust(37)}][ #{format_generic(admin_ip).ljust(15).cyan} ]#{tmp}"
+      line = build_vm_list_string(
+          size,
+          name,
+          disk_label,
+          uuid,
+          format_generic(admin_ip).cyan,
+          tmp
+        )
+      #line = "  [ #{size.rjust(6)}  #{name.ljust(35)} - #{disk_label.rjust(5)} - #{uuid.ljust(37)}][ #{format_generic(admin_ip).ljust(15).cyan} ]#{tmp}"
+      
+      puts line
+    end
+    
+    def build_vm_list_string(size, name, disk_label, uuid, admin_ip, rest)
+      "  [ #{size.rjust(6)}  #{name.ljust(35)} - #{disk_label.rjust(5)} - #{uuid.ljust(37)}][ #{admin_ip.ljust(15)} ]#{rest}"
     end
     
     def printable_state(state)
