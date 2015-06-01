@@ -24,11 +24,15 @@ class AppCLI < Thor
   
   no_tasks {
     def get_registry(path = 'smartos_hosts.toml', **args)
-      if options[:cache]
-        CachedRegistry.new(path, **args)
-      else
-        SSHRegistry.new(path, **args)
+      if options[:cache] == false
+        begin
+          return SSHRegistry.new(path, **args)
+        rescue Errno::ENETUNREACH
+          puts "SSH error, falling back to cached data"
+        end
       end
+      
+      CachedRegistry.new(path, **args)
     end
   }
   
