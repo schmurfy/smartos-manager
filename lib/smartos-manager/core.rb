@@ -46,15 +46,16 @@ end
 
 
 class VirtualMachine
-  attr_reader :uuid, :type, :memory, :state, :name, :admin_ip
+  attr_reader :uuid, :type, :memory, :rss, :state, :name, :admin_ip
     
-  def initialize(data = {})
+  def initialize(data = {}, rss = {})
     @uuid = data.delete('uuid')
     @type = data.delete('type')
     @memory = data.delete('ram').to_i.megabytes
     @state = data.delete('state')
     @name = data.delete('alias')
     @admin_ip = data.delete('nics.0.ip')
+    @rss = rss[@uuid]
     
     @user_data = data
   end
@@ -139,6 +140,19 @@ class HostRegistry
   def list_vms
     columns = LIST_COLUMNS + @user_columns.values
     
+    rss = {}
+    
+    # Memory used for each VM
+    run_on_all("zonememstat").each do |host, data|
+      data.split("\n").each do |line|
+        # ignore headers / global
+        unless line.start_with?('  ')
+          uuid, used_mem, cap, _, _ = line.gsub(/\s+/, ' ').split(" ")
+          rss[uuid] = used_mem.to_i.megabytes
+        end
+      end
+    end
+    
     vms = run_on_all("vmadm list -o #{columns.join(',')} -p")
     vms.each do |host, data|
       if data
@@ -148,7 +162,7 @@ class HostRegistry
             data[columns[n]] = val
           end
           
-          VirtualMachine.new(data)
+          VirtualMachine.new(data, rss)
         end
       else
         vms[host] = []

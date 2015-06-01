@@ -77,7 +77,9 @@ class AppCLI < Thor
           vm_disk_label = "#{vm_disk[:quota]}"
         end
         
-        p_vm_list(vm.memory.human_size(1), vm.name, vm.type, vm.uuid, vm.state, vm.admin_ip, vm_disk_label, *user_columns)
+        formatted_mem = "#{vm.rss.human_size(1).ljust(5)} / #{vm.memory.human_size(1).ljust(5)}"
+        
+        p_vm_list(formatted_mem, vm.name, vm.type, vm.uuid, vm.state, vm.admin_ip, vm_disk_label, *user_columns)
       end
       
       if vms.empty?
@@ -133,7 +135,7 @@ class AppCLI < Thor
           name,
           disk_label,
           uuid,
-          format_generic(admin_ip).cyan,
+          format_generic(admin_ip).ljust(15).cyan,
           tmp
         )
       #line = "  [ #{size.rjust(6)}  #{name.ljust(35)} - #{disk_label.rjust(5)} - #{uuid.ljust(37)}][ #{format_generic(admin_ip).ljust(15).cyan} ]#{tmp}"
@@ -142,7 +144,7 @@ class AppCLI < Thor
     end
     
     def build_vm_list_string(size, name, disk_label, uuid, admin_ip, rest)
-      "  [ #{size.rjust(6)}  #{name.ljust(35)} - #{disk_label.rjust(5)} - #{uuid.ljust(37)}][ #{admin_ip.ljust(15)} ]#{rest}"
+      "  [ #{size.rjust(14)}  #{name.ljust(35)} - #{disk_label.rjust(5)} - #{uuid.ljust(37)}][ #{admin_ip} ]#{rest}"
     end
     
     def printable_state(state)
