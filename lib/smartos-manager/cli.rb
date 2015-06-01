@@ -77,7 +77,12 @@ class AppCLI < Thor
           vm_disk_label = "#{vm_disk[:quota]}"
         end
         
-        formatted_mem = "#{vm.rss.human_size(1).ljust(5)} / #{vm.memory.human_size(1).ljust(5)}"
+        if vm.rss
+          tmp = vm.rss.human_size(1)
+        else
+          tmp = "-"
+        end
+        formatted_mem = "#{tmp.ljust(5)} / #{vm.memory.human_size(1).ljust(5)}"
         
         p_vm_list(formatted_mem, vm.name, vm.type, vm.uuid, vm.state, vm.admin_ip, vm_disk_label, *user_columns)
       end
