@@ -77,57 +77,8 @@ class Image
   end
 end
 
-class HostRegistry
-  attr_reader :user_columns
-  
-  def initialize(path)
-    @registry = {}
-    @gateways = {}
-    @hosts = {}
-    
-    @connection = Net::SSH::Multi.start()
-    
-    data = TOML.load_file(path)
-    
-    global_data = data.delete('global')
-    user_columns = data.delete('user_columns') || {}
-    
-    data.each do |name, opts|
-      host = SSHHost.from_hash(name, opts, global_data)
-      
-      @hosts[host.address] = host
-      
-      @connection.use(host.address,
-          via: gateway_for(host.gateway, host.gateway_user),
-          # via: @gateways[host.gateway],
-          user: host.user,
-          timeout: 20,
-          compression: false
-        )
-      
-      # user defined columns
-      @user_columns = user_columns
-    end
-    
-  end
-  
-  def run_on_all(cmd)
-    ret = {}
-    
-    # setthe keys in cas we get nothing back
-    @hosts.each do |_, h|
-      ret[h] = ""
-    end
-    
-    channel = @connection.exec(cmd) do |ch, stream, data|
-      host = @hosts[ch[:host]]
-      ret[host] << data
-    end
-    
-    channel.wait()
-    ret
-  end
-  
+
+class Registry
   LIST_COLUMNS = %w(
     uuid
     type
@@ -136,14 +87,40 @@ class HostRegistry
     alias
     nics.0.ip
   )
+
+  attr_reader :user_columns
+
+  def initialize(path, cache_key:)
+    @registry = {}
+    @hosts = {}
+    @config_path = path
+    @cache_path = "#{path}.cache"
+    @cache = load_cache()
+    @cache_key = cache_key
+    
+    @config = TOML.load_file(path)
+    
+    @global_data = @config.delete('global')
+    @user_columns = @config.delete('user_columns') || {}
+    
+    @config.each do |name, opts|
+      host = SSHHost.from_hash(name, opts, @global_data)
+      @hosts[host.address] = host
+    end
+  end
+  
+  def find_host(addr)
+    @hosts[addr]
+  end
   
   def list_vms
     columns = LIST_COLUMNS + @user_columns.values
     
+    ret = {}
     rss = {}
     
     # Memory used for each VM
-    run_on_all("zonememstat").each do |host, data|
+    run_on_all("zonememstat").each do |_, data|
       data.split("\n").each do |line|
         # ignore headers / global
         unless line.start_with?('  ')
@@ -154,23 +131,24 @@ class HostRegistry
     end
     
     vms = run_on_all("vmadm list -o #{columns.join(',')} -p")
-    vms.each do |host, data|
+    vms.each do |addr, data|
+      host = find_host(addr)
       if data
-        vms[host] = data.split("\n").map! do |line|
-          data = {}
+        ret[host] = data.split("\n").map! do |line|
+          dd = {}
           line.split(':', 20).each.with_index do |val, n|
-            data[columns[n]] = val
+            dd[columns[n]] = val
           end
           
-          VirtualMachine.new(data, rss)
+          VirtualMachine.new(dd, rss)
         end
       else
-        vms[host] = []
+        ret[host] = []
       end
     end
     
+    ret
   end
-  
   
   def list_images
     ret = {}
@@ -178,8 +156,8 @@ class HostRegistry
     columns = %w(uuid name version os)
     
     images = run_on_all("imgadm list -j")
-    images.each do |host, data|
-      
+    images.each do |addr, data|
+      host = find_host(addr)
       json = JSON.parse(data)
       
       ret[host] = json.map do |img_data|
@@ -194,7 +172,8 @@ class HostRegistry
   def diag
     ret = {}
     
-    run_on_all("prtdiag").each do |host, data|
+    run_on_all("prtdiag").each do |addr, data|
+      host = find_host(addr)
       free_memory_banks = 0
       
       system_id = data.match(/^System Configuration: (.+)$/)[1]
@@ -215,18 +194,21 @@ class HostRegistry
     ret = {}
     
     # Memory size: 8157 Megabytes
-    run_on_all("prtconf | head -3 | grep Mem").each do |host, data|
+    run_on_all("prtconf | head -3 | grep Mem").each do |addr, data|
+      host = find_host(addr)
       _, _, mem, _ = data.split(" ")
       ret[host] = {memory: mem.to_i.megabytes}
     end
     
     # main MAC address
-    run_on_all("ifconfig e1000g0 | grep ether | cut -d ' ' -f 2").each do |host, data|
+    run_on_all("ifconfig e1000g0 | grep ether | cut -d ' ' -f 2").each do |addr, data|
+      host = find_host(addr)
       ret[host][:mac0] = data.strip()
     end
     
     # disk infos
-    run_on_all("diskinfo -Hp").each do |host, data|
+    run_on_all("diskinfo -Hp").each do |addr, data|
+      host = find_host(addr)
       ret[host][:disks] = {}
       
       data.split("\n").each do |line|
@@ -236,7 +218,8 @@ class HostRegistry
     end
     
     # disk size
-    run_on_all("zfs list -Ho name,quota,volsize").each do |host, data|
+    run_on_all("zfs list -Ho name,quota,volsize").each do |addr, data|
+      host = find_host(addr)
       ret[host][:zfs_volumes] = {}
       
       data.split("\n").each do |line|
@@ -248,7 +231,8 @@ class HostRegistry
     # ARC Max Size
     # zfs:0:arcstats:c:2850704524
     # zfs:0:arcstats:size:1261112216
-    run_on_all("kstat -C zfs:0:arcstats:c zfs:0:arcstats:size").each do |host, data|
+    run_on_all("kstat -C zfs:0:arcstats:c zfs:0:arcstats:size").each do |addr, data|
+      host = find_host(addr)
       zfs_arc_current = nil
       zfs_arc_reserved = nil
       
@@ -268,14 +252,90 @@ class HostRegistry
     end
     
     # joyent_20140207T053435Z
-    run_on_all("uname -a | cut -d ' ' -f 4").each do |host, data|
+    run_on_all("uname -a | cut -d ' ' -f 4").each do |addr, data|
+      host = find_host(addr)
       _, rev = data.strip().split('_')
       ret[host][:smartos_version] = rev
     end
     
     ret
   end
+
+private
+  def cache_result(cmd, result)
+    @cache[@cache_key] ||= {}
+    @cache[@cache_key][cmd] = result
+    data = Oj.dump(@cache)
+        
+    IO.write(@cache_path, data)
+  end
   
+  def load_cache
+    Oj.load_file(@cache_path)
+  rescue Oj::ParseError, IOError => err
+    {}
+  end
+
+end
+
+
+class CachedRegistry < Registry
+  def initialize(*)
+    puts "(( Using cached data ))"
+    super
+  end
+  
+  def run_on_all(cmd)
+    if @cache[@cache_key] && @cache[@cache_key][cmd]
+      @cache[@cache_key][cmd]
+    else
+      puts "[#{@cache_key}] missing cache for cmd: '#{cmd}'"
+      {}
+    end
+  end
+end
+
+
+class SSHRegistry < Registry
+  def initialize(*)
+    puts "(( Using live data ))"
+    super
+    
+    @gateways = {}
+    @connection = Net::SSH::Multi.start()
+    
+    @hosts.each do |_, host|
+      @connection.use(host.address,
+          via: gateway_for(host.gateway, host.gateway_user),
+          # via: @gateways[host.gateway],
+          user: host.user,
+          timeout: 20,
+          compression: false
+        )
+    end
+    
+  end
+  
+  def run_on_all(cmd)
+    ret = {}
+    
+    # set the keys in cas we get nothing back
+    @hosts.each do |addr, _|
+      ret[addr] = ""
+    end
+    
+    channel = @connection.exec(cmd) do |ch, stream, data|
+      host = @hosts[ch[:host]]
+      ret[host.address] << data
+    end
+    
+    channel.wait()
+    
+    cache_result(cmd, ret)
+    
+    ret
+  end
+
 private
   def gateway_for(host, user)
     @gateways[host] ||= Net::SSH::Gateway.new(
@@ -284,5 +344,5 @@ private
         compression: false
       )
   end
-    
+  
 end

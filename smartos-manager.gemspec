@@ -22,5 +22,6 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'net-ssh-multi'
   gem.add_dependency 'colored'
   gem.add_dependency 'size_units'
+  gem.add_dependency 'oj'
 
 end

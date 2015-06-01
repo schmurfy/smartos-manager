@@ -2,6 +2,7 @@
 require File.expand_path('../core', __FILE__)
 require 'thor'
 require 'colored'
+require 'oj'
 
 
 class ColorPicker
@@ -19,9 +20,21 @@ end
 
 class AppCLI < Thor
   
+  class_option :cache, desc: "Use cached data", default: false, type: :boolean
+  
+  no_tasks {
+    def get_registry(path = 'smartos_hosts.toml', **args)
+      if options[:cache]
+        CachedRegistry.new(path, **args)
+      else
+        SSHRegistry.new(path, **args)
+      end
+    end
+  }
+  
   desc "list_images", "List images available"
   def list_images
-    registry = HostRegistry.new('smartos_hosts.toml')
+    registry = get_registry(cache_key: 'list_images')
     ret = registry.list_images()
     
     rev_colors = ColorPicker.new
@@ -38,7 +51,7 @@ class AppCLI < Thor
   
   desc "list", "List all vms"
   def list
-    registry = HostRegistry.new('smartos_hosts.toml')
+    registry = get_registry(cache_key: 'list')
     ret = registry.list_vms()
     
     rev_colors = ColorPicker.new
