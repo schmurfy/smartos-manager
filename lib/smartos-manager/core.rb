@@ -265,7 +265,7 @@ private
   def cache_result(cmd, result)
     @cache[@cache_key] ||= {}
     @cache[@cache_key][cmd] = result
-    data = Oj.dump(@cache)
+    data = Oj.dump(@cache, indent: 2)
         
     IO.write(@cache_path, data)
   end
