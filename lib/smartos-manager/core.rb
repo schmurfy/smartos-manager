@@ -178,7 +178,7 @@ class Registry
       free_memory_banks = 0
       
       if matches = data.match(/^System Configuration: (.+)$/)
-        system_id = mastches[1]
+        system_id = matches[1]
         data.scan(/(empty).*DIMM\s+([0-9])/).each do |reg|
           free_memory_banks+= 1
         end
