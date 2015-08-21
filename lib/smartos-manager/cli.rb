@@ -63,6 +63,17 @@ class AppCLI < Thor
     sysinfos = registry.sysinfo()
     diags = registry.diag()
     
+    failures = registry.failed_connections()
+    unless failures.empty?
+      puts "Error while connecting to:".red()
+      failures.each do |s|
+        puts "  - #{s.name} : #{s.address}".red()
+      end
+      
+      puts ""
+    end
+
+    
     user_columns = registry.user_columns.keys.map{|s| humanize(s) }
     
     p_vm_list("Memory", "Name (gray = online)", "Type", "UUID", "State", "Admin IP", "DD(GB)", *user_columns)

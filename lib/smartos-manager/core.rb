@@ -174,13 +174,16 @@ class Registry
     
     run_on_all("prtdiag").each do |addr, data|
       host = find_host(addr)
+      system_id = "(none)"
       free_memory_banks = 0
       
-      system_id = data.match(/^System Configuration: (.+)$/)[1]
-      data.scan(/(empty).*DIMM\s+([0-9])/).each do |reg|
-        free_memory_banks+= 1
+      if matches = data.match(/^System Configuration: (.+)$/)
+        system_id = mastches[1]
+        data.scan(/(empty).*DIMM\s+([0-9])/).each do |reg|
+          free_memory_banks+= 1
+        end
       end
-            
+      
       ret[host] = {
         system_id: system_id,
         free_memory_banks: free_memory_banks
@@ -301,28 +304,31 @@ class SSHRegistry < Registry
     puts "(( Using live data ))"
     super
     
+    @failed_connections = []
+    
     @gateways = {}
-    @connection = Net::SSH::Multi.start()
+    @connection = Net::SSH::Multi.start(:on_error => ->(server){
+        @failed_connections << server.host
+      })
     
     @hosts.each do |_, host|
       @connection.use(host.address,
           via: gateway_for(host.gateway, host.gateway_user),
-          # via: @gateways[host.gateway],
           user: host.user,
           timeout: 20,
+          auth_methods: %w(publickey),
           compression: false
         )
     end
-    
   end
   
   def run_on_all(cmd)
     ret = {}
     
     # set the keys in cas we get nothing back
-    @hosts.each do |addr, _|
-      ret[addr] = ""
-    end
+    # @hosts.each do |addr, _|
+    #   ret[addr] = ""
+    # end
     
     channel = @connection.exec(cmd) do |ch, stream, data|
       host = @hosts[ch[:host]]
@@ -334,6 +340,10 @@ class SSHRegistry < Registry
     cache_result(cmd, ret)
     
     ret
+  end
+  
+  def failed_connections
+    @failed_connections.map{|address| @hosts[address] }
   end
 
 private
