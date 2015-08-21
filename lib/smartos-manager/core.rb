@@ -296,6 +296,10 @@ class CachedRegistry < Registry
       {}
     end
   end
+  
+  def failed_connections
+    []
+  end
 end
 
 
