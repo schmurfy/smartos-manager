@@ -204,7 +204,7 @@ class Registry
     end
     
     # main MAC address
-    run_on_all("ifconfig e1000g0 | grep ether | cut -d ' ' -f 2").each do |addr, data|
+    run_on_all("ifconfig `dladm show-phys -p -o link | head -n 1` | grep ether | cut -d ' ' -f 2").each do |addr, data|
       host = find_host(addr)
       ret[host][:mac0] = data.strip()
     end
