@@ -330,9 +330,9 @@ class SSHRegistry < Registry
     ret = {}
     
     # set the keys in cas we get nothing back
-    # @hosts.each do |addr, _|
-    #   ret[addr] = ""
-    # end
+    @hosts.each do |addr, _|
+      ret[addr] = ""
+    end
     
     channel = @connection.exec(cmd) do |ch, stream, data|
       host = @hosts[ch[:host]]
@@ -340,6 +340,13 @@ class SSHRegistry < Registry
     end
     
     channel.wait()
+    
+    # remove empty results
+    @hosts.each do |addr, _|
+      if ret[addr] == ""
+        ret.delete(addr)
+      end
+    end
     
     cache_result(cmd, ret)
     
