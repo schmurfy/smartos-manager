@@ -62,16 +62,6 @@ class AppCLI < Thor
     
     sysinfos = registry.sysinfo()
     diags = registry.diag()
-    
-    failures = registry.failed_connections()
-    unless failures.empty?
-      puts "Error while connecting to:".red()
-      failures.each do |s|
-        puts "  - #{s.name} : #{s.address}".red()
-      end
-      
-      puts ""
-    end
 
     
     user_columns = registry.user_columns.keys.map{|s| humanize(s) }
@@ -121,6 +111,16 @@ class AppCLI < Thor
       
       # avail = (mem - vm_memory) - (20 * mem/100)
       # puts "  Available Memory: #{avail.human_size(1)}".magenta()
+    end
+    
+    failures = registry.failed_connections()
+    unless failures.empty?
+      puts "\n\nError while connecting to:".red()
+      failures.each do |s|
+        puts "  - #{s.name} : #{s.address}".red()
+      end
+      
+      puts ""
     end
     
   end
