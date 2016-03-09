@@ -119,6 +119,11 @@ class Registry
     ret = {}
     rss = {}
     
+    
+    @hosts.values.each do |host|
+      ret[host] = []
+    end
+    
     # Memory used for each VM
     run_on_all("zonememstat").each do |_, data|
       data.split("\n").each do |line|
@@ -132,8 +137,8 @@ class Registry
     
     vms = run_on_all("vmadm list -o #{columns.join(',')} -p")
     vms.each do |addr, data|
-      host = find_host(addr)
       if data
+        host = find_host(addr)
         ret[host] = data.split("\n").map! do |line|
           dd = {}
           line.split(':', 20).each.with_index do |val, n|
@@ -142,8 +147,6 @@ class Registry
           
           VirtualMachine.new(dd, rss)
         end
-      else
-        ret[host] = []
       end
     end
     
